@@ -1,8 +1,23 @@
-from time import time
+import io
+import time
+import picamera
+from base_camera import BaseCamera
 
-class Camera(object):
-    def __init__(self):
-        self.frames = [open(f + '.jpg', 'rb').read() for f in ['1', '2', '3']]
 
-    def get_frame(self):
-        return self.frames[int(time()) % 3]
+class Camera(BaseCamera):
+    @staticmethod
+    def frames():
+        with picamera.PiCamera() as camera:
+            # let camera warm up
+            time.sleep(2)
+
+            stream = io.BytesIO()
+            for _ in camera.capture_continuous(stream, 'jpeg',
+                                                 use_video_port=True):
+                # return current frame
+                stream.seek(0)
+                yield stream.read()
+
+                # reset stream for next frame
+                stream.seek(0)
+                stream.truncate()
